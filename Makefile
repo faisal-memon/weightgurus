@@ -4,7 +4,7 @@
 all: help
 
 # Default image name
-IMAGE ?= ghcr.io/faisalmemon/weightgurus
+IMAGE ?= ghcr.io/faisal-memon/weightgurus
 
 # Build Docker image (single arch)
 .PHONY: docker
