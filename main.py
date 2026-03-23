@@ -4,6 +4,7 @@ from datetime import datetime
 import json
 
 import requests
+import os
 
 def transform_weight(weight):
     """
@@ -178,5 +179,9 @@ class WeightGurus:
 
 
 if __name__ == "__main__":
-    weight_gurus = WeightGurus('username', 'password!')
+    username = os.getenv('WG_USERNAME')
+    password = os.getenv('WG_PASSWORD')
+    if not username or not password:
+        raise RuntimeError('WG_USERNAME and WG_PASSWORD env vars must be set')
+    weight_gurus = WeightGurus(username, password)
     weight_gurus.get_all()
