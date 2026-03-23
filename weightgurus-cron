@@ -1,0 +1,2 @@
+# Run the Python program daily at 10 AM with jitter
+0 10 * * * root /app/run_with_jitter.sh >> /var/log/cron.log 2>&1
