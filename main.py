@@ -4,6 +4,7 @@ from datetime import datetime
 import json
 
 import requests
+import csv
 import os
 
 def transform_weight(weight):
@@ -61,6 +62,45 @@ class WeightGurus:
     def get_all(self):
         self.__do_login()
         return json.dumps(self.__get_weight_history(), indent=4, sort_keys=True)
+
+    def save_all_csv(self, filename=None):
+        """
+        Fetches the full weight history and writes it to a CSV file.
+
+        The output file can be set via the environment variable
+        ``WG_CSV_FILE``. If the variable is not set the
+        default ``weights.csv`` will be used.
+
+        Parameters
+        ----------
+        filename: str, optional
+            Path to the output CSV file. If ``None`` the value from the
+            environment variable (or the default) is used.
+
+        Returns
+        -------
+        str or None
+            The path of the created CSV file, or ``None`` if the write
+            failed.
+        """
+        # Resolve filename from env or default
+        if filename is None:
+            filename = os.getenv("WG_CSV_FILE", "weights.csv")
+
+        self.__do_login()
+        data = self.__get_weight_history()
+        if not data or "operations" not in data:
+            print("No data to write to CSV.")
+            return None
+        operations = data["operations"]
+        if not operations:
+            print("No operations found.")
+            return None
+        with open(filename, "w", newline="") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=operations[0].keys())
+            writer.writeheader()
+            writer.writerows(operations)
+        return filename
 
     def get_since_date(self, start_date):
         self.__do_login()
@@ -184,4 +224,6 @@ if __name__ == "__main__":
     if not username or not password:
         raise RuntimeError('WG_USERNAME and WG_PASSWORD env vars must be set')
     weight_gurus = WeightGurus(username, password)
-    weight_gurus.get_all()
+    csv_path = weight_gurus.save_all_csv()
+    if csv_path:
+        print(f"CSV written to {csv_path}")

@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  weightgurus:
+    image: ghcr.io/faisal-memon/weightgurus:latest
+    env_file: .env
+    environment:
+      - WG_CSV_FILE=/output/weights.csv
+    volumes:
+      - ./output:/output
+    restart: unless-stopped
