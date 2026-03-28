@@ -91,6 +91,12 @@ make docker-multi-local
 
 ## Key Implementation Details
 
+### CSV Export
+- The client includes a `save_all_csv()` method that fetches the full weight history and writes it to a CSV file.
+- The output filename can be set via the environment variable `WG_CSV_FILE`. If the variable is not set, it defaults to `weights.csv`.
+- The method prints a confirmation message upon success and warns if no data is available.
+- The Docker compose configuration mounts a host directory (`./output`) and sets `WG_CSV_FILE=/output/weights.csv` so the CSV is persisted on the host.
+
 ### Weight Gurus Data Format
 - Weights are stored as integers where the last digit represents tenths (e.g., 150.5 lbs is stored as 1505)
 - Operations have timestamps in ISO format with Z timezone suffix
