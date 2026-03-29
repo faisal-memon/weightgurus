@@ -5,6 +5,7 @@ services:
     env_file: .env
     environment:
       - WG_CSV_FILE=/output/weights.csv
+      - TZ=America/Los_Angeles
     volumes:
       - ./output:/output
     restart: unless-stopped
