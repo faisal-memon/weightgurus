@@ -14,10 +14,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
 COPY main.py ./
-
-# Copy cron job file
+# Copy cron job file and script
 COPY weightgurus-cron /etc/cron.d/weightgurus-cron
+COPY run_with_jitter.sh /app/run_with_jitter.sh
 RUN chmod 0644 /etc/cron.d/weightgurus-cron && crontab /etc/cron.d/weightgurus-cron
+RUN chmod +x /app/run_with_jitter.sh
 
 # Start cron in foreground
 CMD ["cron", "-f"]
