@@ -226,4 +226,6 @@ if __name__ == "__main__":
     weight_gurus = WeightGurus(username, password)
     csv_path = weight_gurus.save_all_csv()
     if csv_path:
-        print(f"CSV written to {csv_path}")
+        print(f"✅ Weight data saved successfully at {csv_path} - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    else:
+        print(f"❌ Failed to save CSV at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
