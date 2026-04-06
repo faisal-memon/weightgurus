@@ -1,11 +1,13 @@
-version: '3.8'
 services:
   weightgurus:
-    image: ghcr.io/faisal-memon/weightgurus:latest
+    image: ghcr.io/faisal-memon/weightgurus:latest-local
+    command: /bin/bash -c "while true; do /bin/bash /app/run_with_jitter.sh || true; sleep \"$${WG_UPDATE_INTERVAL:-24h}\"; done"
     env_file: .env
     environment:
-      - WG_CSV_FILE=/output/weights.csv
       - TZ=America/Los_Angeles
+      - WG_UPDATE_INTERVAL=${WG_UPDATE_INTERVAL:-24h}
+      - WG_JITTER_SECONDS_MAX=${WG_JITTER_SECONDS_MAX:-300}
     volumes:
-      - ./output:/output
+      - ${WG_HOST_OUTPUT_DIR}:/output
+      - ./run_with_jitter.sh:/app/run_with_jitter.sh:ro
     restart: unless-stopped
