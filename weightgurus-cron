@@ -1,2 +1,2 @@
-# Run the Python program daily at 10 AM with jitter
-0 10 * * * /app/run_with_jitter.sh >> /proc/1/fd/1 2>&1
+# min   hour    day     month   weekday command
+0 10 * * * root /bin/bash /app/run_with_jitter.sh >> /proc/1/fd/1 2>&1

@@ -1,7 +1,6 @@
 services:
   weightgurus:
     image: ghcr.io/faisal-memon/weightgurus:latest-local
-    command: /bin/bash -c "while true; do /bin/bash /app/run_with_jitter.sh || true; sleep \"$${WG_UPDATE_INTERVAL:-24h}\"; done"
     env_file: .env
     environment:
       - TZ=America/Los_Angeles

@@ -17,8 +17,7 @@ COPY main.py ./
 # Copy cron job file and script
 COPY weightgurus-cron /etc/cron.d/weightgurus-cron
 COPY run_with_jitter.sh /app/run_with_jitter.sh
-RUN chmod 0644 /etc/cron.d/weightgurus-cron && crontab /etc/cron.d/weightgurus-cron
+RUN chmod 0644 /etc/cron.d/weightgurus-cron
 RUN chmod +x /app/run_with_jitter.sh
 
-# Start cron in foreground
-CMD ["cron", "-f"]
+CMD ["/bin/sh", "-c", "printenv > /etc/environment && cron -f"]
