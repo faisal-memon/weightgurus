@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 from cmath import nan
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
-
-import requests
 import csv
 import os
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+import requests
 
 def transform_weight(weight):
     """
@@ -27,6 +28,15 @@ def transform_weight(weight):
 
 
 class WeightGurus:
+    CSV_FIELDNAMES = [
+        "weight_lb",
+        "body_fat_pct",
+        "muscle_mass_pct",
+        "water_pct",
+        "bmi",
+        "bone_mass_pct",
+        "datetime",
+    ]
 
     def __init__(self, username, password):
         self.login_data = {
@@ -92,14 +102,14 @@ class WeightGurus:
         if not data or "operations" not in data:
             print("No data to write to CSV.")
             return None
-        operations = data["operations"]
+        operations = self._clean_operations(data["operations"])
         if not operations:
             print("No operations found.")
             return None
         with open(filename, "w", newline="") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=operations[0].keys())
+            writer = csv.DictWriter(csvfile, fieldnames=self.CSV_FIELDNAMES)
             writer.writeheader()
-            writer.writerows(operations)
+            writer.writerows(self._format_csv_rows(operations))
         return filename
 
     def get_since_date(self, start_date):
@@ -120,47 +130,90 @@ class WeightGurus:
 
     @staticmethod
     def _clean_operations(operations: list):
-        operations = WeightGurus._remove_deleted_operations(operations)
-        return operations
+        operations = WeightGurus._remove_malformed_operations(list(operations))
+        return WeightGurus._remove_deleted_operations(operations)
+
+    @staticmethod
+    def _remove_malformed_operations(operations):
+        return [
+            operation
+            for operation in operations
+            if not WeightGurus._is_malformed_operation(operation)
+        ]
+
+    @staticmethod
+    def _is_malformed_operation(operation):
+        entry_timestamp = operation.get("entryTimestamp")
+        server_timestamp = operation.get("serverTimestamp")
+        if not entry_timestamp or not server_timestamp:
+            return False
+
+        entry_date = datetime.fromisoformat(entry_timestamp.replace("Z", "+00:00"))
+        server_date = datetime.fromisoformat(server_timestamp.replace("Z", "+00:00"))
+        return entry_date > server_date + timedelta(days=1)
 
     @staticmethod
     def _remove_deleted_operations(operations):
-        for index, operation in enumerate(operations):
-            if operation["operationType"] == "delete":
-                deleted_operation = operations.pop(index)
-                operations = WeightGurus._remove_operation_deleted(
-                    operations, deleted_operation
-                )
+        cleaned_operations = [
+            operation
+            for operation in operations
+            if operation.get("operationType") != "delete"
+        ]
+        deleted_operations = [
+            operation
+            for operation in operations
+            if operation.get("operationType") == "delete"
+        ]
 
-        return operations
+        for deleted_operation in deleted_operations:
+            cleaned_operations = WeightGurus._remove_operation_deleted(
+                cleaned_operations, deleted_operation
+            )
+
+        return cleaned_operations
 
     @staticmethod
     def _remove_operation_deleted(operations, deleted_operation):
-        for index, current_operation in enumerate(operations):
-            if WeightGurus._is_deleted_operation(current_operation, deleted_operation):
-                operations.pop(index)
+        deleted_match_removed = False
+        remaining_operations = []
 
-        return operations
+        for current_operation in operations:
+            if (
+                not deleted_match_removed
+                and WeightGurus._is_deleted_operation(
+                    current_operation, deleted_operation
+                )
+            ):
+                deleted_match_removed = True
+                continue
+
+            remaining_operations.append(current_operation)
+
+        return remaining_operations
 
     @staticmethod
     def _is_deleted_operation(current_operation, deleted_operation):
-        if (
-            WeightGurus._is_operation_earlier(current_operation, deleted_operation)
-            and current_operation["weight"] == deleted_operation["weight"]
-        ):
-            return True
-
-        return False
+        return (
+            current_operation.get("weight") == deleted_operation.get("weight")
+            and current_operation.get("entryTimestamp")
+            == deleted_operation.get("entryTimestamp")
+        )
 
     @staticmethod
-    def _is_operation_earlier(current_operation, deleted_operation):
-        current_date = datetime.fromisoformat(
-            current_operation["serverTimestamp"].replace("Z", "+00:00")
-        )
-        deleted_date = datetime.fromisoformat(
-            deleted_operation["serverTimestamp"].replace("Z", "+00:00")
-        )
-        return current_date < deleted_date
+    def _get_csv_timezone():
+        timezone_name = os.getenv("WG_CSV_TIMEZONE") or os.getenv("TZ")
+        if not timezone_name:
+            return ZoneInfo("UTC")
+
+        try:
+            return ZoneInfo(timezone_name)
+        except ZoneInfoNotFoundError:
+            return ZoneInfo("UTC")
+
+    @staticmethod
+    def _format_datetime_for_csv(timestamp):
+        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        return dt.astimezone(WeightGurus._get_csv_timezone()).isoformat()
 
     @staticmethod
     def _wg_num_to_float(number):
@@ -181,6 +234,68 @@ class WeightGurus:
             return nan
 
         return whole_number + decimal_point
+
+    @staticmethod
+    def _format_decimal(value, force_one_decimal=False):
+        if value is None:
+            value = 0
+
+        if force_one_decimal:
+            return f"{value:.1f}"
+
+        formatted = f"{value:.1f}".rstrip("0").rstrip(".")
+        return formatted or "0"
+
+    @staticmethod
+    def _format_csv_metric(value, suffix="", force_one_decimal=False):
+        if value in (None, "", 0, "0"):
+            numeric_value = 0
+        else:
+            numeric_value = WeightGurus._wg_num_to_float(value)
+
+        return f"{WeightGurus._format_decimal(numeric_value, force_one_decimal)}{suffix}"
+
+    @staticmethod
+    def _format_csv_timestamp(operation):
+        timestamp = operation.get("entryTimestamp") or operation.get("serverTimestamp")
+        if not timestamp:
+            return ""
+
+        return WeightGurus._format_datetime_for_csv(timestamp)
+
+    @staticmethod
+    def _format_csv_row(operation):
+        return {
+            "weight_lb": WeightGurus._format_csv_metric(
+                operation.get("weight"), force_one_decimal=True
+            ),
+            "body_fat_pct": WeightGurus._format_csv_metric(
+                operation.get("bodyFat")
+            ),
+            "muscle_mass_pct": WeightGurus._format_csv_metric(
+                operation.get("muscleMass")
+            ),
+            "water_pct": WeightGurus._format_csv_metric(
+                operation.get("water")
+            ),
+            "bmi": WeightGurus._format_csv_metric(operation.get("bmi")),
+            "bone_mass_pct": WeightGurus._format_csv_metric(
+                operation.get("boneMass")
+            ),
+            "datetime": WeightGurus._format_csv_timestamp(operation),
+        }
+
+    @staticmethod
+    def _format_csv_rows(operations):
+        return [
+            WeightGurus._format_csv_row(operation)
+            for operation in sorted(
+                operations,
+                key=lambda operation: operation.get("entryTimestamp")
+                or operation.get("serverTimestamp")
+                or "",
+            )
+        ]
 
 
     def manual_entry(self, weight, bmi=None, body_fat=None, muscle_mass=None, water=None):
