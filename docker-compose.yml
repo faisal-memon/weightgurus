@@ -8,5 +8,4 @@ services:
       - WG_JITTER_SECONDS_MAX=${WG_JITTER_SECONDS_MAX:-300}
     volumes:
       - ${WG_HOST_OUTPUT_DIR}:/output
-      - ./run_with_jitter.sh:/app/run_with_jitter.sh:ro
     restart: unless-stopped
