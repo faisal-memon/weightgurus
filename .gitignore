@@ -1,3 +1,5 @@
 output/
 .env
 weights.csv
+__pycache__/
+*.py[cod]
