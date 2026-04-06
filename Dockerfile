@@ -14,10 +14,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
 COPY main.py ./
-# Copy cron job file and script
-COPY weightgurus-cron /etc/cron.d/weightgurus-cron
+COPY weightgurus-cron /defaults/weightgurus-cron.tmpl
 COPY run_with_jitter.sh /app/run_with_jitter.sh
-RUN chmod 0644 /etc/cron.d/weightgurus-cron
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/run_with_jitter.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
-CMD ["/bin/sh", "-c", "printenv > /etc/environment && cron -f"]
+CMD ["/app/docker-entrypoint.sh"]
