@@ -15,8 +15,13 @@ case "$WG_UPDATE_INTERVAL" in
       echo "WG_UPDATE_INTERVAL hours value must be between 1 and 24"
       exit 1
     fi
-    MINUTES="0"
-    HOURS="*/${HOURS}"
+    if (( HOURS == 24 )); then
+      MINUTES="0"
+      HOURS="0"
+    else
+      MINUTES="0"
+      HOURS="*/${HOURS}"
+    fi
     ;;
   *)
     MINUTES="${WG_UPDATE_INTERVAL%m}"

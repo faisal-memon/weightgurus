@@ -50,7 +50,7 @@ The Docker container includes:
 
 ### Cron Job Configuration (`weightgurus-cron`)
 
-Runs daily at 10 AM with up to 30 minutes of random jitter to distribute load across servers. The jitter is applied in `run_with_jitter.sh` before executing the Python script.
+Runs based on `WG_UPDATE_INTERVAL` with random jitter to distribute load across servers. The jitter is applied in `scripts/run_with_jitter.sh` before executing the Python script.
 
 ### Build System (`Makefile`)
 

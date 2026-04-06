@@ -15,9 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application code
 COPY main.py ./
 COPY weightgurus-cron /defaults/weightgurus-cron.tmpl
-COPY run_with_jitter.sh /app/run_with_jitter.sh
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/run_with_jitter.sh
-RUN chmod +x /app/docker-entrypoint.sh
+COPY scripts/run_with_jitter.sh /app/scripts/run_with_jitter.sh
+COPY scripts/docker-entrypoint.sh /app/scripts/docker-entrypoint.sh
+RUN chmod +x /app/scripts/run_with_jitter.sh
+RUN chmod +x /app/scripts/docker-entrypoint.sh
 
-CMD ["/app/docker-entrypoint.sh"]
+CMD ["/app/scripts/docker-entrypoint.sh"]
